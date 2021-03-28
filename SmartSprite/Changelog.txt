@@ -1,0 +1,3 @@
+Release +1
+Changed name comparing scheme so extra skins would not be exported in circumstances 
+when their name contained another name. ("StreetReaper" would be exported with "Reaper").
