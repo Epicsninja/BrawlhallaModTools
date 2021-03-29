@@ -124,7 +124,7 @@ class EMethods {
         return null;
     }
 
-    public static void ExtractSprites(String nameOfSkin, SWF swf, SpriteExportMode mode) {
+    public static void ExtractSprites(String nameOfSkin, SWF swf, SpriteExportMode mode, double exportSize) {
         if (swf != null) { //open up a file
 
             //Get some SWF parameters
@@ -184,7 +184,7 @@ class EMethods {
 
             com.jpexs.decompiler.flash.EventListener evl = swf.getExportEventListener();
 
-            SpriteExportSettings ses = new SpriteExportSettings(mode, 100);
+            SpriteExportSettings ses = new SpriteExportSettings(mode, exportSize);
             FrameExporter frameExporter = new FrameExporter();
 
             //For all of the tags in the list, E X P O R T
@@ -211,7 +211,7 @@ class EMethods {
         }
     }
 
-    public static void ExtractShapes(String nameOfSkin, SWF swf, ShapeExportMode mode) {
+    public static void ExtractShapes(String nameOfSkin, SWF swf, ShapeExportMode mode, double exportSize) {
         if (swf != null) { //open up a file
 
             //Get some SWF parameters
@@ -264,7 +264,7 @@ class EMethods {
 
             com.jpexs.decompiler.flash.EventListener evl = swf.getExportEventListener();
 
-            ShapeExportSettings ses = new ShapeExportSettings(mode, 100);
+            ShapeExportSettings ses = new ShapeExportSettings(mode, exportSize);
             ShapeExporter shapeExporter = new ShapeExporter();
 
             for (Tag t: tagsFound) {

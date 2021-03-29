@@ -18,6 +18,7 @@ public class Gui {
 
     SpriteExportMode SpriteEM = SpriteExportMode.SWF;
     ShapeExportMode ShapeEM = ShapeExportMode.SWF;
+    double ExportScaleUsed = 1;
 
 
     public Gui() {
@@ -114,7 +115,7 @@ public class Gui {
             public void actionPerformed(ActionEvent e) {
                 reloadNamesButton.setText("Reloading...");
                 if (selectedSWF != null) {
-                    List < String > listNames = EMethods.GetAllValidNames((SWF)selectedSWF, 0);
+                    List < String > listNames = EMethods.GetAllValidNames((SWF) selectedSWF, 0);
 
                     String[] names = new String[listNames.size()];
                     listNames.toArray(names);
@@ -133,7 +134,7 @@ public class Gui {
 
         //So many warnings in this section. I don't know enough about programming to fix them.
         //Box for Sprite Export format.
-        JComboBox<String> spriteFormat = new JComboBox<String>();
+        JComboBox < String > spriteFormat = new JComboBox < String > ();
         spriteFormat.addItem("SWF");
         spriteFormat.addItem("SVG");
         spriteFormat.addItem("PNG");
@@ -144,24 +145,21 @@ public class Gui {
             @Override
             public void actionPerformed(ActionEvent e) {
                 //This is a disgusting If chain but I really don't see any other options.
-                if(spriteFormat.getSelectedItem() == "SWF"){
+                if (spriteFormat.getSelectedItem() == "SWF") {
                     SpriteEM = SpriteExportMode.SWF;
-                }
-                else if(spriteFormat.getSelectedItem() == "SVG"){
+                } else if (spriteFormat.getSelectedItem() == "SVG") {
                     SpriteEM = SpriteExportMode.SVG;
-                }
-                else if(spriteFormat.getSelectedItem() == "PNG"){
+                } else if (spriteFormat.getSelectedItem() == "PNG") {
                     SpriteEM = SpriteExportMode.PNG;
-                }
-                else{
+                } else {
                     //Who in their right mind would choose BMP? Why is this even an option?
                     SpriteEM = SpriteExportMode.BMP;
                 }
-            }            
+            }
         });
 
         //Box for Shape Export format.
-        JComboBox<String> shapeFormat = new JComboBox<String>();
+        JComboBox < String > shapeFormat = new JComboBox < String > ();
         shapeFormat.addItem("SWF");
         shapeFormat.addItem("SVG");
         shapeFormat.addItem("PNG");
@@ -172,22 +170,42 @@ public class Gui {
             @Override
             public void actionPerformed(ActionEvent e) {
                 //This is a disgusting If chain but I really don't see any other options.
-                if(shapeFormat.getSelectedItem() == "SWF"){
+                if (shapeFormat.getSelectedItem() == "SWF") {
                     ShapeEM = ShapeExportMode.SWF;
-                }
-                else if(shapeFormat.getSelectedItem() == "SVG"){
+                } else if (shapeFormat.getSelectedItem() == "SVG") {
                     ShapeEM = ShapeExportMode.SVG;
-                }
-                else if(shapeFormat.getSelectedItem() == "PNG"){
+                } else if (shapeFormat.getSelectedItem() == "PNG") {
                     ShapeEM = ShapeExportMode.PNG;
-                }
-                else{
+                } else {
                     //Who in their right mind would choose BMP? Why is this even an option?
                     ShapeEM = ShapeExportMode.BMP;
                 }
-            }            
+            }
         });
 
+        //Box for Export scale.
+        JComboBox < String > exportScale = new JComboBox < String > ();
+        exportScale.addItem("50%");
+        exportScale.addItem("100%");
+        exportScale.addItem("200%");
+        exportScale.addItem("400%");
+        exportScale.setSelectedItem(exportScale.getItemAt(1));
+        exportScale.setBounds(210, 105, 200, 24);
+        exportScale.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                //This is a disgusting If chain but I really don't see any other options.
+                if (shapeFormat.getSelectedItem() == "50%") {
+                    ExportScaleUsed = 0.5;
+                } else if (shapeFormat.getSelectedItem() == "100%") {
+                    ExportScaleUsed = 1;
+                } else if (shapeFormat.getSelectedItem() == "200%") {
+                    ExportScaleUsed = 2;
+                } else {
+                    ExportScaleUsed = 4;
+                }
+            }
+        });
 
         //Button to export Sprites for whatever the skins name is.
         JButton exportSprites = new JButton("Export Sprites");
@@ -196,7 +214,7 @@ public class Gui {
         exportSprites.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if (selectedSWF != null && selectedSkinName.getText().length() > 1) {
-                    EMethods.ExtractSprites(selectedSkinName.getText(), selectedSWF, SpriteEM);
+                    EMethods.ExtractSprites(selectedSkinName.getText(), selectedSWF, SpriteEM, ExportScaleUsed);
                 }
             }
         });
@@ -208,7 +226,7 @@ public class Gui {
         exportShapes.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if (selectedSWF != null && selectedSkinName.getText().length() > 1) {
-                    EMethods.ExtractShapes(selectedSkinName.getText(), selectedSWF, ShapeEM);
+                    EMethods.ExtractShapes(selectedSkinName.getText(), selectedSWF, ShapeEM, ExportScaleUsed);
                 }
             }
         });
@@ -216,7 +234,7 @@ public class Gui {
         //Things to consider adding: Option to pick export directory, option to make exports compatible with modloader vs aimed at normal modding.
         //demo renderer of selected skin?
         JLabel teaser = new JLabel("I might add more features later. I might not.");
-        teaser.setBounds(210, 105, 275, 24);
+        teaser.setBounds(210, 145, 275, 24);
 
 
         frame.add(selectSwfButton);
@@ -226,7 +244,8 @@ public class Gui {
         frame.add(namesScrollPane);
         frame.add(skinLabel);
         frame.add(selectedSkinName);
-        frame.add((exportSprites));
+        frame.add(exportScale);
+        frame.add(exportSprites);
         frame.add(exportShapes);
         frame.add(teaser);
         frame.add(spriteFormat);
