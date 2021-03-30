@@ -4,14 +4,20 @@ import com.jpexs.decompiler.flash.SWF;
 import com.jpexs.decompiler.flash.SwfOpenException;
 import com.jpexs.decompiler.flash.tags.DefineSpriteTag;
 import com.jpexs.decompiler.flash.tags.Tag;
+import com.jpexs.decompiler.flash.tags.TagInfo;
 import com.jpexs.decompiler.flash.tags.base.CharacterIdTag;
 import com.jpexs.decompiler.flash.tags.base.CharacterTag;
+import com.jpexs.decompiler.flash.tags.base.ImageTag;
+import com.jpexs.decompiler.flash.tags.base.ShapeTag;
+import com.jpexs.helpers.Helper;
 import com.jpexs.decompiler.flash.exporters.FrameExporter;
 import com.jpexs.decompiler.flash.exporters.ShapeExporter;
 import com.jpexs.decompiler.flash.exporters.modes.ShapeExportMode;
 import com.jpexs.decompiler.flash.exporters.modes.SpriteExportMode;
 import com.jpexs.decompiler.flash.exporters.settings.ShapeExportSettings;
 import com.jpexs.decompiler.flash.exporters.settings.SpriteExportSettings;
+import com.jpexs.decompiler.flash.importers.ImageImporter;
+import com.jpexs.decompiler.flash.importers.ShapeImporter;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -20,12 +26,19 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 class EMethods {
-    /*public static void main(String[] args) {
-        System.out.println(GetNameFromExportName("DefineSprite_20_a_WeaponSwordLand_BattlePassSet2", "BattlePassSet2"));
-    }*/
+    public static void main(String[] args) {
+        try {
+            ReplaceSprite("_a_Jaw_SharkGoblin", "data/1.svg", GetSwf("Gfx_ActualShark.swf", true));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            System.out.println("It didn't work... :(");
+            e.printStackTrace();
+        }
+    }
 
     public static List < String > GetAllValidNames(SWF swf, int level) {
         if (swf != null) {
@@ -84,7 +97,7 @@ class EMethods {
         return null;
     }
 
-    public static String GetNameFromExportName(String ExpName, String NameOfSet) {
+    public static String GetNameFromExportName(String ExpName, String NameOfSet, boolean includeSet) {
         //No proper name should be shorter then this.
         //DefineSprite_0_a_b
         if (ExpName.length() >= 18) {
@@ -93,9 +106,13 @@ class EMethods {
             String str = ExpName;
             str = str.replaceAll("[^0-9]+", " ");
             int ID = Integer.parseInt((str.trim().split(" "))[0]);
-            System.out.println(ID);
+            //System.out.println(ID);
 
-            return ExpName.substring(13 + String.valueOf(ID).length(), ExpName.length() - NameOfSet.length());
+            if (includeSet) {
+                return ExpName.substring(13 + String.valueOf(ID).length(), ExpName.length());
+            } else {
+                return ExpName.substring(13 + String.valueOf(ID).length(), ExpName.length() - NameOfSet.length());
+            }
         }
         return "NAME_TOO_SHORT";
     }
@@ -294,6 +311,61 @@ class EMethods {
 
             System.out.println("OK");
         }
+    }
+
+    public static void ReplaceSprite(String toReplace, String replacement, SWF swf) throws IOException {
+        ShapeImporter importer = new ShapeImporter();
+
+        //Assuming this reads the bytes of a file at path provided.
+        byte[] rBytes = Helper.readFile(replacement);
+
+        ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
+        importer.importImage(tagToReplace, rBytes);
+    }
+
+    public static List < Tag > GetNeededTagsClean(Tag t, SWF swf){
+                Set < Integer > needed = new HashSet < > ();
+                t.getNeededCharacters(needed);
+
+                List < Tag > neededTags = new ArrayList < > ();
+
+                for (Tag ft: swf.getTags()) {
+                    if (ft instanceof CharacterIdTag) {
+                        if (needed.contains(((CharacterTag) ft).getCharacterId())) {
+                            neededTags.add(ft);
+                        }
+                    } else {
+                        //System.out.println("1 Tag " + t.getTagName());
+                    }
+                }
+
+                return neededTags;
+    }
+
+    //Takes in NAME ONLY.
+    //Should add support for Export Name (Which includes TagID)
+    public static ShapeTag ShapeTagFromName(SWF swf, String tagName) {
+        if (swf != null) {
+            for (Tag t: swf.getTags()) {
+                if (t instanceof CharacterIdTag) {               
+                    if (t.getTagName().contains("DefineSprite")) {
+                        String tName = ((CharacterTag) t).getExportFileName();
+
+                        int substringPoint = tName.lastIndexOf("_") + 1;
+
+                        String uName = GetNameFromExportName(tName, tName.substring(substringPoint), true);
+
+                        if (uName.equals(tagName)) {
+                            CharacterTag reTag = (CharacterTag)GetNeededTagsClean(t, swf).get(0);
+
+                            return ((ShapeTag) reTag);
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("No tag with name" + tagName + " Found");
+        return null;
     }
 
     //Not sure if this one is still useful, but I ain't deleting it.
