@@ -30,7 +30,7 @@ import java.util.Locale;
 import java.util.Set;
 
 class EMethods {
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         try {
             ReplaceSprite("_a_Jaw_SharkGoblin", "data/1.svg", GetSwf("Gfx_ActualShark.swf", true));
         } catch (IOException e) {
@@ -38,7 +38,7 @@ class EMethods {
             System.out.println("It didn't work... :(");
             e.printStackTrace();
         }
-    }
+    }*/
 
     public static List < String > GetAllValidNames(SWF swf, int level) {
         if (swf != null) {
@@ -168,7 +168,7 @@ class EMethods {
                     //Very few instances of this specific problem actually occured, but it's a simple fix.
                     String expName = t.getExportFileName();
                     expName = expName.substring(expName.lastIndexOf("_") + 1, expName.length());
-                    if (expName == nameToFind) {
+                    if (expName.equals(nameToFind)) {
                         //We really only need fullName. The rest of the info is just cut up bits of fullName.
                         int charId = ((CharacterIdTag) t).getCharacterId();
                         String fullName = t.getExportFileName();
@@ -203,6 +203,8 @@ class EMethods {
 
             SpriteExportSettings ses = new SpriteExportSettings(mode, exportSize);
             FrameExporter frameExporter = new FrameExporter();
+
+            System.out.println(tagsFound.size() + " tags found");
 
             //For all of the tags in the list, E X P O R T
             for (Tag t: tagsFound) {
@@ -318,9 +320,10 @@ class EMethods {
 
         //Assuming this reads the bytes of a file at path provided.
         byte[] rBytes = Helper.readFile(replacement);
-
+        int res = ImageImporter.getImageTagType(replacement.toLowerCase(Locale.ENGLISH));
+        
         ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
-        importer.importImage(tagToReplace, rBytes);
+        importer.importImage(tagToReplace, rBytes, res, false);
     }
 
     public static List < Tag > GetNeededTagsClean(Tag t, SWF swf){
