@@ -10,6 +10,10 @@ import com.jpexs.decompiler.flash.tags.base.CharacterTag;
 import com.jpexs.decompiler.flash.tags.base.ImageTag;
 import com.jpexs.decompiler.flash.tags.base.ShapeTag;
 import com.jpexs.helpers.Helper;
+
+import org.monte.media.jpeg.CMYKJPEGImageReader;
+import org.monte.media.jpeg.CMYKJPEGImageReaderSpi;
+
 import com.jpexs.decompiler.flash.exporters.FrameExporter;
 import com.jpexs.decompiler.flash.exporters.ShapeExporter;
 import com.jpexs.decompiler.flash.exporters.modes.ShapeExportMode;
@@ -18,27 +22,34 @@ import com.jpexs.decompiler.flash.exporters.settings.ShapeExportSettings;
 import com.jpexs.decompiler.flash.exporters.settings.SpriteExportSettings;
 import com.jpexs.decompiler.flash.importers.ImageImporter;
 import com.jpexs.decompiler.flash.importers.ShapeImporter;
+import com.jpexs.decompiler.flash.importers.svg.SvgImporter;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.awt.image.BufferedImage;
+
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
 
 class EMethods {
-    /*public static void main(String[] args) {
+    public static void main(String[] args) {
         try {
-            ReplaceSprite("_a_Jaw_SharkGoblin", "data/1.svg", GetSwf("Gfx_ActualShark.swf", true));
+            ReplaceSprite("_a_Jaw_SharkGoblin", "data/7.svg", GetSwf("Gfx_ActualShark.swf", true));
         } catch (IOException e) {
             // TODO Auto-generated catch block
             System.out.println("It didn't work... :(");
             e.printStackTrace();
         }
-    }*/
+    }
 
     public static List < String > GetAllValidNames(SWF swf, int level) {
         if (swf != null) {
@@ -316,14 +327,21 @@ class EMethods {
     }
 
     public static void ReplaceSprite(String toReplace, String replacement, SWF swf) throws IOException {
-        ShapeImporter importer = new ShapeImporter();
+        SvgImporter importer = new SvgImporter();
 
         //Assuming this reads the bytes of a file at path provided.
         byte[] rBytes = Helper.readFile(replacement);
-        int res = ImageImporter.getImageTagType(replacement.toLowerCase(Locale.ENGLISH));
-        
+
         ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
-        importer.importImage(tagToReplace, rBytes, res, false);
+        try {
+            String svgText = Helper.readTextFile(replacement);
+
+            importer.importSvg(tagToReplace, svgText);
+            System.out.println(tagToReplace.getName());
+        } catch (NullPointerException e) {
+            System.out.println("It didn't work... Sad");
+            e.printStackTrace();
+        }
     }
 
     public static List < Tag > GetNeededTagsClean(Tag t, SWF swf){
