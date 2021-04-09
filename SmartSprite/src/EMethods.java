@@ -27,8 +27,10 @@ import com.jpexs.decompiler.flash.importers.svg.SvgImporter;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,7 +45,7 @@ import javax.imageio.stream.ImageInputStream;
 class EMethods {
     public static void main(String[] args) {
         try {
-            ReplaceSprite("_a_Jaw_SharkGoblin", "data/7.svg", GetSwf("Gfx_ActualShark.swf", true));
+            ReplaceSprite("_a_Jaw_SharkGoblin", "data/7.svg", "Gfx_ActualShark.swf");
         } catch (IOException e) {
             // TODO Auto-generated catch block
             System.out.println("It didn't work... :(");
@@ -326,41 +328,43 @@ class EMethods {
         }
     }
 
-    public static void ReplaceSprite(String toReplace, String replacement, SWF swf) throws IOException {
+    public static void ReplaceSprite(String toReplace, String replacement, String swfPath) throws IOException {
         SvgImporter importer = new SvgImporter();
 
-        //Assuming this reads the bytes of a file at path provided.
-        byte[] rBytes = Helper.readFile(replacement);
+        SWF swf = GetSwf(swfPath, false);
 
+        String svgText = Helper.readTextFile(replacement);
         ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
-        try {
-            String svgText = Helper.readTextFile(replacement);
 
+        try {
             importer.importSvg(tagToReplace, svgText);
-            System.out.println(tagToReplace.getName());
+
+            OutputStream outputStream = new FileOutputStream(swfPath);
+
+            swf.saveTo(outputStream);
         } catch (NullPointerException e) {
             System.out.println("It didn't work... Sad");
             e.printStackTrace();
         }
     }
 
-    public static List < Tag > GetNeededTagsClean(Tag t, SWF swf){
-                Set < Integer > needed = new HashSet < > ();
-                t.getNeededCharacters(needed);
+    public static List < Tag > GetNeededTagsClean(Tag t, SWF swf) {
+        Set < Integer > needed = new HashSet < > ();
+        t.getNeededCharacters(needed);
 
-                List < Tag > neededTags = new ArrayList < > ();
+        List < Tag > neededTags = new ArrayList < > ();
 
-                for (Tag ft: swf.getTags()) {
-                    if (ft instanceof CharacterIdTag) {
-                        if (needed.contains(((CharacterTag) ft).getCharacterId())) {
-                            neededTags.add(ft);
-                        }
-                    } else {
-                        //System.out.println("1 Tag " + t.getTagName());
-                    }
+        for (Tag ft: swf.getTags()) {
+            if (ft instanceof CharacterIdTag) {
+                if (needed.contains(((CharacterTag) ft).getCharacterId())) {
+                    neededTags.add(ft);
                 }
+            } else {
+                //System.out.println("1 Tag " + t.getTagName());
+            }
+        }
 
-                return neededTags;
+        return neededTags;
     }
 
     //Takes in NAME ONLY.
@@ -368,7 +372,7 @@ class EMethods {
     public static ShapeTag ShapeTagFromName(SWF swf, String tagName) {
         if (swf != null) {
             for (Tag t: swf.getTags()) {
-                if (t instanceof CharacterIdTag) {               
+                if (t instanceof CharacterIdTag) {
                     if (t.getTagName().contains("DefineSprite")) {
                         String tName = ((CharacterTag) t).getExportFileName();
 
@@ -377,7 +381,7 @@ class EMethods {
                         String uName = GetNameFromExportName(tName, tName.substring(substringPoint), true);
 
                         if (uName.equals(tagName)) {
-                            CharacterTag reTag = (CharacterTag)GetNeededTagsClean(t, swf).get(0);
+                            CharacterTag reTag = (CharacterTag) GetNeededTagsClean(t, swf).get(0);
 
                             return ((ShapeTag) reTag);
                         }
