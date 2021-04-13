@@ -14,6 +14,8 @@ import com.jpexs.helpers.Helper;
 import org.monte.media.jpeg.CMYKJPEGImageReader;
 import org.monte.media.jpeg.CMYKJPEGImageReaderSpi;
 
+import jdk.nashorn.internal.ir.UnaryNode;
+
 import com.jpexs.decompiler.flash.exporters.FrameExporter;
 import com.jpexs.decompiler.flash.exporters.ShapeExporter;
 import com.jpexs.decompiler.flash.exporters.modes.ShapeExportMode;
@@ -25,6 +27,7 @@ import com.jpexs.decompiler.flash.importers.ShapeImporter;
 import com.jpexs.decompiler.flash.importers.svg.SvgImporter;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -42,14 +45,68 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
 
+//The naming in these methods is highly inconsistent, and a lot of code is repeated. I'll have to work on that later.
+
 class EMethods {
     public static void main(String[] args) {
-        try {
-            ReplaceSprite("_a_Jaw_SharkGoblin", "data/7.svg", "Gfx_ActualShark.swf");
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            System.out.println("It didn't work... :(");
-            e.printStackTrace();
+        String nameOfSkin = "SharkGoblin";
+        SWF swf = GetSwf("Gfx_ActualShark.swf", true);
+
+        List < String > replacements = new ArrayList < String > ();
+
+        File folder = new File("data/shapes");
+        File[] listOfFiles = folder.listFiles();
+
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+                replacements.add(listOfFiles[i].getName().substring(0, listOfFiles[i].getName().length() - 4));
+            }
+        }
+
+        System.out.println(replacements);
+
+        List < String > toReplace = new ArrayList < String > ();
+        List < Tag > allSprites = GetSpritesList(nameOfSkin, swf);
+        List < Tag > replaceSprites = new ArrayList < Tag > ();
+
+        for (Tag t: allSprites) {
+
+            Set < Integer > needed = new HashSet < > ();
+            t.getNeededCharacters(needed);
+
+            String name = GetNameFromExportName(t.getExportFileName(), nameOfSkin, false);
+            name = name.substring(2, name.length());
+
+            if (needed.size() > 0) {
+                if (replacements.contains(name)) {
+                    for (int i = 0; i < needed.size(); i++) {
+                        //In theory I should be able to replace sprites that use multiple shapes too.
+                        if (1 == needed.size()) {
+                            toReplace.add(name);
+                        } else {
+                            toReplace.add(name + i);
+                        }
+                    }
+                    replaceSprites.add(t);
+                }
+            } else {
+                System.out.println(t.getExportFileName() + " has no needed tags. Weird.");
+            }
+        }
+
+        System.out.println(toReplace);
+        //At this stage, To Replace should be identical to Replacements, just disorganized.
+        //To replace contains duplicates based on Needed Tags, while replaceSprites does not.
+
+        //Now we Replace the shapes.
+        //TODO: Turn this into the fancy inject/ sprite storing for Demodding.
+        for (int i = 0; i < replaceSprites.size(); i++) {
+            try {
+                ReplaceSprite("_a" + toReplace.get(i) + nameOfSkin, "data/shapes/" + toReplace.get(i) + ".svg", "Gfx_ActualShark.swf");
+            } catch (IOException e) {
+                System.out.println("FUCK");
+                e.printStackTrace();
+            }
         }
     }
 
@@ -121,9 +178,12 @@ class EMethods {
             int ID = Integer.parseInt((str.trim().split(" "))[0]);
             //System.out.println(ID);
 
+            //Input: DefineSprite_0_part_set
             if (includeSet) {
+                //Output: _part_set
                 return ExpName.substring(13 + String.valueOf(ID).length(), ExpName.length());
             } else {
+                //Output: _part_
                 return ExpName.substring(13 + String.valueOf(ID).length(), ExpName.length() - NameOfSet.length());
             }
         }
@@ -135,6 +195,13 @@ class EMethods {
 
         if (!localLocation) {
             swfPath = swfName;
+        }
+
+        File f = new File(swfPath);
+        if (f.exists()) {
+            System.out.println("Pog " + swfPath);
+        } else {
+            System.out.println(swfPath + " no...");
         }
 
         try (FileInputStream fis = new FileInputStream(swfPath)) { //open up a file
@@ -154,6 +221,28 @@ class EMethods {
         return null;
     }
 
+    public static List < Tag > GetSpritesList(String nameOfSkin, SWF swf) {
+        //Get some SWF parameters
+        System.out.println("SWF version = " + swf.version);
+        System.out.println("FrameCount = " + swf.frameCount);
+
+        //My Variables.
+        String nameToFind = nameOfSkin;
+        List < Tag > tagsFound = new ArrayList < > ();
+
+        for (Tag t: swf.getTags()) {
+            if (t instanceof CharacterIdTag) {
+                String expName = t.getExportFileName();
+                expName = expName.substring(expName.lastIndexOf("_") + 1, expName.length());
+                if (expName.equals(nameToFind)) {
+                    tagsFound.add(t);
+                }
+            } else {}
+
+        }
+        return tagsFound;
+    }
+
     public static void ExtractSprites(String nameOfSkin, SWF swf, SpriteExportMode mode, double exportSize) {
         if (swf != null) { //open up a file
 
@@ -164,7 +253,7 @@ class EMethods {
             //My Variables.
             String nameToFind = nameOfSkin;
             String namesFound = "";
-            List < Tag > tagsFound = new ArrayList < > ();
+            List < Tag > tagsFound = GetSpritesList(nameOfSkin, swf);
             PrintWriter out = null;
 
             try {
@@ -174,26 +263,6 @@ class EMethods {
                 e.printStackTrace();
             }
 
-            for (Tag t: swf.getTags()) {
-                if (t instanceof CharacterIdTag) {
-                    //Check if name matches.
-                    //Originally used String.endsWith(), but this meant "StreetReaper" would be extracted along with "Reaper". 
-                    //Very few instances of this specific problem actually occured, but it's a simple fix.
-                    String expName = t.getExportFileName();
-                    expName = expName.substring(expName.lastIndexOf("_") + 1, expName.length());
-                    if (expName.equals(nameToFind)) {
-                        //We really only need fullName. The rest of the info is just cut up bits of fullName.
-                        int charId = ((CharacterIdTag) t).getCharacterId();
-                        String fullName = t.getExportFileName();
-                        String partName = t.getExportFileName().substring(13 + String.valueOf(((CharacterTag) t).getCharacterId()).length(), t.getExportFileName().length() - nameToFind.length());
-
-                        namesFound += (charId + "\n " + partName + "\n" + fullName + "\n \n");
-                        tagsFound.add(t);
-                    }
-                } else {
-                    //System.out.println("1 Tag " + t.getTagName());
-                }
-            }
 
             //I don't know what any of this is, it was auto generated.
             AbortRetryIgnoreHandler handler = new AbortRetryIgnoreHandler() {
@@ -253,29 +322,7 @@ class EMethods {
             //My Variables.
             String nameToFind = nameOfSkin;
             //String namesFound = "";
-            List < Tag > tagsFound = new ArrayList < > ();
-
-            for (Tag t: swf.getTags()) {
-                if (t instanceof CharacterIdTag) {
-                    //Check if name matches.
-                    //Originally used String.endsWith(), but this meant "StreetReaper" would be extracted along with "Reaper". 
-                    //Very few instances of this specific problem actually occured, but it's a simple fix.
-                    String expName = t.getExportFileName();
-                    expName = expName.substring(expName.lastIndexOf("_") + 1, expName.length());
-                    System.out.println((expName + " vs " + nameToFind + " bool " + (expName.equals(nameToFind))));
-                    if (expName.equals(nameToFind)) {
-                        //We really only need fullName. The rest of the info is just cut up bits of fullName.
-                        /*int charId = ((CharacterIdTag) t).getCharacterId();
-                        String fullName = t.getExportFileName();
-                        String partName = t.getExportFileName().substring(13 + String.valueOf(((CharacterTag) t).getCharacterId()).length(), t.getExportFileName().length() - nameToFind.length());
-
-                        namesFound += (charId + "\n " + partName + "\n" + fullName + "\n \n");*/
-                        tagsFound.add(t);
-                    }
-                } else {
-                    //System.out.println("1 Tag " + t.getTagName());
-                }
-            }
+            List < Tag > tagsFound = GetSpritesList(nameOfSkin, swf);
 
             //I don't know what any of this is, it was auto generated.
             AbortRetryIgnoreHandler handler = new AbortRetryIgnoreHandler() {
@@ -331,7 +378,7 @@ class EMethods {
     public static void ReplaceSprite(String toReplace, String replacement, String swfPath) throws IOException {
         SvgImporter importer = new SvgImporter();
 
-        SWF swf = GetSwf(swfPath, false);
+        SWF swf = GetSwf(swfPath, true);
 
         String svgText = Helper.readTextFile(replacement);
         ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
@@ -339,12 +386,31 @@ class EMethods {
         try {
             importer.importSvg(tagToReplace, svgText);
 
-            OutputStream outputStream = new FileOutputStream(swfPath);
+            OutputStream outputStream = new FileOutputStream("data/" + swfPath);
 
             swf.saveTo(outputStream);
         } catch (NullPointerException e) {
             System.out.println("It didn't work... Sad");
             e.printStackTrace();
+        }
+    }
+
+    //Only works for SVG currently. Fix that later.
+    public static void ReplaceShape(ShapeTag tagToReplace, String replacementPath, String swfPath) throws IOException {
+        SvgImporter importer = new SvgImporter();
+
+        SWF swf = GetSwf(swfPath, false);
+
+        String svgText = Helper.readTextFile(replacementPath);
+
+        try {
+            importer.importSvg(tagToReplace, svgText);
+
+            OutputStream outputStream = new FileOutputStream("data/" + swfPath);
+
+            swf.saveTo(outputStream);
+        } catch (NullPointerException e) {
+            System.out.println("Replacement failed with " + replacementPath);
         }
     }
 
@@ -379,6 +445,7 @@ class EMethods {
                         int substringPoint = tName.lastIndexOf("_") + 1;
 
                         String uName = GetNameFromExportName(tName, tName.substring(substringPoint), true);
+                        System.out.println(uName);
 
                         if (uName.equals(tagName)) {
                             CharacterTag reTag = (CharacterTag) GetNeededTagsClean(t, swf).get(0);
