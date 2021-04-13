@@ -115,7 +115,7 @@ public class Gui {
             public void actionPerformed(ActionEvent e) {
                 reloadNamesButton.setText("Reloading...");
                 if (selectedSWF != null) {
-                    List < String > listNames = EMethods.GetAllValidNames((SWF) selectedSWF, 0);
+                    List < String > listNames = EMethods.GetAllSkinNames((SWF) selectedSWF, 0);
 
                     String[] names = new String[listNames.size()];
                     listNames.toArray(names);

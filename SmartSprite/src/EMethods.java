@@ -45,8 +45,10 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
 
-//The naming in these methods is highly inconsistent, and a lot of code is repeated. I'll have to work on that later.
-
+//Terminology
+//ExpName: Export Name. DefineSprite_0_a_b
+//PartName: Ending of ExpName. Can include SetName(b)
+//SkinName: Very End of ExpName. Name of the set the skin belongs to.
 class EMethods {
     public static void main(String[] args) {
         String nameOfSkin = "SharkGoblin";
@@ -74,7 +76,7 @@ class EMethods {
             Set < Integer > needed = new HashSet < > ();
             t.getNeededCharacters(needed);
 
-            String name = GetNameFromExportName(t.getExportFileName(), nameOfSkin, false);
+            String name = GetPartNameFromExpName(t.getExportFileName(), nameOfSkin, false);
             name = name.substring(2, name.length());
 
             if (needed.size() > 0) {
@@ -110,12 +112,9 @@ class EMethods {
         }
     }
 
-    public static List < String > GetAllValidNames(SWF swf, int level) {
+    //Returns a string list of all SkinNames in a SWF.
+    public static List < String > GetAllSkinNames(SWF swf, int level) {
         if (swf != null) {
-            //Get some SWF parameters
-            System.out.println("SWF version = " + swf.version);
-            System.out.println("FrameCount = " + swf.frameCount);
-
             //My Variables.
             List < String > namesFound = new ArrayList < String > ();
 
@@ -126,70 +125,50 @@ class EMethods {
 
                         //Exclude shades due to different naming scheme.
                         if (!tName.contains("Shades")) {
-                            //This bit of code gets all "_" in a name. Level is used to determine how many "_" back we check a name.
-                            //TODO: Make this actually work.
-                            /*int maxLevel = 0;
-                            List < Integer > levelIndices = new ArrayList < Integer > ();
-
-                            for (int i = 0; i < tName.toCharArray().length; i++) {
-                                if (Character.toString(tName.charAt(i)) == "_") {
-                                    maxLevel++;
-                                    levelIndices.add(i);
-                                }
-                            }*/
-
-                            //For example: DefineSprite_20_a_WeaponSwordLand_BattlePassSet2
-                            //Level 0 = BattlePassSet2
-                            //Level 1 = WeaponSwordLand_BattlePassSet2
+                            //TODO: Make level actually work
+                            //Level is how many "_" back we check a name.
 
                             int substringPoint = tName.lastIndexOf("_") + 1;
-
-                            /*if(maxLevel - level - 1 >= 0){
-                                substringPoint = levelIndices.get(maxLevel - level - 1) + 1;
-                            }*/
 
                             tName = tName.substring(substringPoint);
 
                             if (!namesFound.contains(tName)) {
                                 namesFound.add(tName);
-                                //numsFound.add(((CharacterTag) t).getCharacterId());
                             }
                         }
                     }
-                } else {
-                    //System.out.println("1 Tag " + t.getTagName());
                 }
             }
 
-            System.out.println("OK");
+            System.out.println("All Skin Names got");
             return namesFound;
         }
         return null;
     }
 
-    public static String GetNameFromExportName(String ExpName, String NameOfSet, boolean includeSet) {
+    //DefineSprite_0_a_b --> 0_a (+_b)
+    public static String GetPartNameFromExpName(String expName, String skinName, boolean includeSkin) {
         //No proper name should be shorter then this.
         //DefineSprite_0_a_b
-        if (ExpName.length() >= 18) {
-
+        if (expName.length() >= 18) {
             //Clever bit of code found online that seperates out the numbers.
-            String str = ExpName;
+            String str = expName;
             str = str.replaceAll("[^0-9]+", " ");
             int ID = Integer.parseInt((str.trim().split(" "))[0]);
-            //System.out.println(ID);
 
             //Input: DefineSprite_0_part_set
-            if (includeSet) {
+            if (includeSkin) {
                 //Output: _part_set
-                return ExpName.substring(13 + String.valueOf(ID).length(), ExpName.length());
+                return expName.substring(13 + String.valueOf(ID).length(), expName.length());
             } else {
                 //Output: _part_
-                return ExpName.substring(13 + String.valueOf(ID).length(), ExpName.length() - NameOfSet.length());
+                return expName.substring(13 + String.valueOf(ID).length(), expName.length() - skinName.length());
             }
         }
         return "NAME_TOO_SHORT";
     }
 
+    //Returns SWF at location.
     public static SWF GetSwf(String swfName, Boolean localLocation) {
         String swfPath = "data/" + swfName;
 
@@ -221,13 +200,14 @@ class EMethods {
         return null;
     }
 
-    public static List < Tag > GetSpritesList(String nameOfSkin, SWF swf) {
+    //Gets list of all Sprites in a Skin.
+    public static List < Tag > GetSpritesList(String skinName, SWF swf) {
         //Get some SWF parameters
         System.out.println("SWF version = " + swf.version);
         System.out.println("FrameCount = " + swf.frameCount);
 
         //My Variables.
-        String nameToFind = nameOfSkin;
+        String nameToFind = skinName;
         List < Tag > tagsFound = new ArrayList < > ();
 
         for (Tag t: swf.getTags()) {
@@ -243,26 +223,11 @@ class EMethods {
         return tagsFound;
     }
 
-    public static void ExtractSprites(String nameOfSkin, SWF swf, SpriteExportMode mode, double exportSize) {
+    public static void ExtractSprites(String skinName, SWF swf, SpriteExportMode mode, double exportSize) {
         if (swf != null) { //open up a file
-
-            //Get some SWF parameters
-            System.out.println("SWF version = " + swf.version);
-            System.out.println("FrameCount = " + swf.frameCount);
-
-            //My Variables.
-            String nameToFind = nameOfSkin;
+            String nameToFind = skinName;
             String namesFound = "";
-            List < Tag > tagsFound = GetSpritesList(nameOfSkin, swf);
-            PrintWriter out = null;
-
-            try {
-                out = new PrintWriter(nameToFind + ".txt");
-            } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
+            List < Tag > tagsFound = GetSpritesList(skinName, swf);
 
             //I don't know what any of this is, it was auto generated.
             AbortRetryIgnoreHandler handler = new AbortRetryIgnoreHandler() {
@@ -281,8 +246,8 @@ class EMethods {
 
             };
 
+            //Buncha dumb junk we need.
             com.jpexs.decompiler.flash.EventListener evl = swf.getExportEventListener();
-
             SpriteExportSettings ses = new SpriteExportSettings(mode, exportSize);
             FrameExporter frameExporter = new FrameExporter();
 
@@ -291,7 +256,6 @@ class EMethods {
             //For all of the tags in the list, E X P O R T
             for (Tag t: tagsFound) {
                 if (t instanceof DefineSpriteTag) {
-                    //ExtractAssociatedShapes(t, swfName, nameToFind);
                     try {
                         frameExporter.exportSpriteFrames(handler, nameToFind + "/Sprites", swf, ((DefineSpriteTag) t).getCharacterId(), null, ses, evl);
                     } catch (IOException e) {
@@ -305,24 +269,18 @@ class EMethods {
             }
 
             //Writes the info to a TXT file. Isn't that nice?
-            out.println(namesFound);
-            out.close();
+            //We don't really need it now though, so I'm commenting it out.
+            //out.println(namesFound);
+            //out.close();
 
             System.out.println("OK");
         }
     }
 
-    public static void ExtractShapes(String nameOfSkin, SWF swf, ShapeExportMode mode, double exportSize) {
+    public static void ExtractShapes(String skinName, SWF swf, ShapeExportMode mode, double exportSize) {
         if (swf != null) { //open up a file
-
-            //Get some SWF parameters
-            System.out.println("SWF version = " + swf.version);
-            System.out.println("FrameCount = " + swf.frameCount);
-
-            //My Variables.
-            String nameToFind = nameOfSkin;
-            //String namesFound = "";
-            List < Tag > tagsFound = GetSpritesList(nameOfSkin, swf);
+            String nameToFind = skinName;
+            List < Tag > tagsFound = GetSpritesList(skinName, swf);
 
             //I don't know what any of this is, it was auto generated.
             AbortRetryIgnoreHandler handler = new AbortRetryIgnoreHandler() {
@@ -341,27 +299,26 @@ class EMethods {
 
             };
 
+            //Buncha dumb junk we need.
             com.jpexs.decompiler.flash.EventListener evl = swf.getExportEventListener();
-
             ShapeExportSettings ses = new ShapeExportSettings(mode, exportSize);
             ShapeExporter shapeExporter = new ShapeExporter();
 
             for (Tag t: tagsFound) {
                 Set < Integer > needed = new HashSet < > ();
                 t.getNeededCharacters(needed);
-
                 List < Tag > neededTags = new ArrayList < > ();
 
                 for (Tag ft: swf.getTags()) {
                     if (ft instanceof CharacterIdTag) {
+                        //If Tag found is a sprite belonging to the set we want, add its needed characters(shapes) to an array.
                         if (needed.contains(((CharacterTag) ft).getCharacterId())) {
                             neededTags.add(ft);
                         }
-                    } else {
-                        //System.out.println("1 Tag " + t.getTagName());
                     }
                 }
 
+                //Export needed characters array.
                 try {
                     shapeExporter.exportShapes(handler, nameToFind + "/Shapes", swf, new ReadOnlyTagList(neededTags), ses, evl);
                 } catch (IOException | InterruptedException e) {
@@ -375,6 +332,7 @@ class EMethods {
         }
     }
 
+    //This does not yet work with sprites that have multiple shapes.
     public static void ReplaceSprite(String toReplace, String replacement, String swfPath) throws IOException {
         SvgImporter importer = new SvgImporter();
 
@@ -444,7 +402,7 @@ class EMethods {
 
                         int substringPoint = tName.lastIndexOf("_") + 1;
 
-                        String uName = GetNameFromExportName(tName, tName.substring(substringPoint), true);
+                        String uName = GetPartNameFromExpName(tName, tName.substring(substringPoint), true);
                         System.out.println(uName);
 
                         if (uName.equals(tagName)) {
@@ -458,64 +416,5 @@ class EMethods {
         }
         System.out.println("No tag with name" + tagName + " Found");
         return null;
-    }
-
-    //Not sure if this one is still useful, but I ain't deleting it.
-    public static void ExtractAssociatedShapes(Tag tag, String sourceSwf, String outputLocation) {
-        Set < Integer > needed = new HashSet < > ();
-        tag.getNeededCharacters(needed);
-
-        try (FileInputStream fis = new FileInputStream("data/" + sourceSwf)) { //open up a file
-
-            //Pass the InputStream to SWF constructor.
-            //Note: There are many variants of the constructor - Do not use single parameter version - is does not process whole SWF.
-            SWF swf = new SWF(fis, true);
-
-            //I don't know what any of this is, it was auto generated.
-            AbortRetryIgnoreHandler handler = new AbortRetryIgnoreHandler() {
-
-                @Override
-                public AbortRetryIgnoreHandler getNewInstance() {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
-
-                @Override
-                public int handle(Throwable arg0) {
-                    // TODO Auto-generated method stub
-                    return 0;
-                }
-
-            };
-
-            List < Tag > tagsFound = new ArrayList < > ();
-
-            for (Tag t: swf.getTags()) {
-                if (t instanceof CharacterIdTag) {
-                    if (needed.contains(((CharacterTag) t).getCharacterId())) {
-                        tagsFound.add(t);
-                    }
-                } else {
-                    //System.out.println("1 Tag " + t.getTagName());
-                }
-            }
-
-            com.jpexs.decompiler.flash.EventListener evl = swf.getExportEventListener();
-
-            ShapeExportSettings ses = new ShapeExportSettings(ShapeExportMode.SWF, 100);
-            ShapeExporter shapeExporter = new ShapeExporter();
-
-            //for (Tag t: tagsFound) {
-            shapeExporter.exportShapes(handler, outputLocation + "/Shapes", swf, new ReadOnlyTagList(tagsFound), ses, evl);
-            //}
-
-            System.out.println("OK");
-        } catch (SwfOpenException ex) {
-            System.out.println("ERROR: Invalid SWF file");
-        } catch (IOException ex) {
-            System.out.println("ERROR: Error during SWF opening");
-        } catch (InterruptedException ex) {
-            System.out.println("ERROR: Parsing interrupted");
-        }
     }
 }
