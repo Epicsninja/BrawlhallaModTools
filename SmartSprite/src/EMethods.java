@@ -12,6 +12,7 @@ import com.jpexs.decompiler.flash.tags.base.CharacterTag;
 import com.jpexs.decompiler.flash.tags.base.ImageTag;
 import com.jpexs.decompiler.flash.tags.base.ShapeTag;
 import com.jpexs.decompiler.flash.timeline.Frame;
+import com.jpexs.decompiler.flash.types.MATRIX;
 import com.jpexs.helpers.Helper;
 
 import org.monte.media.jpeg.CMYKJPEGImageReader;
@@ -67,7 +68,9 @@ class EMethods {
                         PlaceObject2Tag PO = (PlaceObject2Tag) sportTags.get(i);
 
                         if (PO.placeFlagHasMatrix) {
-                            PO.matrix.translateX = 5000;
+                            MATRIX mat = PO.getMatrix();
+                            mat.translateX = 5000;
+                            PO.setMatrix(mat);
 
                             sprot.replaceTag(i, PO);
                         } else {
@@ -80,6 +83,25 @@ class EMethods {
             } else {}
         }
 
+        for (Tag t: swf.getTags()) {
+            if (t instanceof DefineSpriteTag) {
+                DefineSpriteTag sprot = (DefineSpriteTag) t;
+                ReadOnlyTagList sportTags = sprot.getTags();
+
+                for (int i = 0; i < sportTags.size(); i++) {
+                    if (sportTags.get(i) instanceof PlaceObject2Tag) {
+                        PlaceObject2Tag PO = (PlaceObject2Tag) sportTags.get(i);
+
+                        if (PO.placeFlagHasMatrix) {
+                            System.out.println(PO.getMatrix().translateX);
+                        } else {
+                            System.out.println("Bad2");
+                        }
+                    }
+                }
+            } else {}
+        }
+
         OutputStream os = new FileOutputStream("data/GFX_REEEEEEEEEEEEEEEEE.swf");
         try {
             swf.saveTo(os);
@@ -89,6 +111,25 @@ class EMethods {
         }
 
         swf = GetSwf("GFX_REEEEEEEEEEEEEEEEE.swf", true);
+
+        for (Tag t: swf.getTags()) {
+            if (t instanceof DefineSpriteTag) {
+                DefineSpriteTag sprot = (DefineSpriteTag) t;
+                ReadOnlyTagList sportTags = sprot.getTags();
+
+                for (int i = 0; i < sportTags.size(); i++) {
+                    if (sportTags.get(i) instanceof PlaceObject2Tag) {
+                        PlaceObject2Tag PO = (PlaceObject2Tag) sportTags.get(i);
+
+                        if (PO.placeFlagHasMatrix) {
+                            System.out.println(PO.getMatrix().translateX);
+                        } else {
+                            System.out.println("Bad3");
+                        }
+                    }
+                }
+            } else {}
+        }
     }
 
     public static void ReplacerAlpha() {
