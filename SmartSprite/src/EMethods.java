@@ -1,14 +1,17 @@
 import com.jpexs.decompiler.flash.AbortRetryIgnoreHandler;
 import com.jpexs.decompiler.flash.ReadOnlyTagList;
 import com.jpexs.decompiler.flash.SWF;
+import com.jpexs.decompiler.flash.SWFOutputStream;
 import com.jpexs.decompiler.flash.SwfOpenException;
 import com.jpexs.decompiler.flash.tags.DefineSpriteTag;
+import com.jpexs.decompiler.flash.tags.PlaceObject2Tag;
 import com.jpexs.decompiler.flash.tags.Tag;
 import com.jpexs.decompiler.flash.tags.TagInfo;
 import com.jpexs.decompiler.flash.tags.base.CharacterIdTag;
 import com.jpexs.decompiler.flash.tags.base.CharacterTag;
 import com.jpexs.decompiler.flash.tags.base.ImageTag;
 import com.jpexs.decompiler.flash.tags.base.ShapeTag;
+import com.jpexs.decompiler.flash.timeline.Frame;
 import com.jpexs.helpers.Helper;
 
 import org.monte.media.jpeg.CMYKJPEGImageReader;
@@ -51,6 +54,30 @@ import javax.imageio.stream.ImageInputStream;
 //SkinName: Very End of ExpName. Name of the set the skin belongs to.
 class EMethods {
     public static void main(String[] args) {
+        DefineSpriteTag tag = null;
+
+        List < Tag > tagsFound = GetSpritesList("SharkGoblin", GetSwf("Gfx_ActualShark.swf", true));
+
+        for (Tag t: tagsFound) {
+            if (t instanceof DefineSpriteTag) {
+                tag = (DefineSpriteTag) t;
+                System.out.println("Guuchi " + t.getExportFileName());
+                break;
+            }
+        }
+
+        System.out.println("GOONGI GOONGO " + (tag == null));
+
+        try {
+            MoveObjectInSprite(tag, 0, 0, 5000, 5000);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            System.out.println("It didn't work...");
+        }
+    }
+
+    public static void ReplacerAlpha() {
         String nameOfSkin = "SharkGoblin";
         SWF swf = GetSwf("Gfx_ActualShark.swf", true);
 
@@ -166,6 +193,42 @@ class EMethods {
             }
         }
         return "NAME_TOO_SHORT";
+    }
+
+    public static void MoveObjectInSprite(DefineSpriteTag tag, int frameIndex, int placeObject, int xAmount, int yAmount) throws IOException {
+        if (frameIndex >= tag.frameCount) {
+            System.out.println("Frame " + frameIndex + " is outside of Range " + tag.frameCount);
+            return;
+        }
+
+        DefineSpriteTag spriteLikeTheSoda = tag;
+        ReadOnlyTagList fTags = spriteLikeTheSoda.getTags();
+        PlaceObject2Tag bred = null;
+
+        for (int i = 0; i < fTags.size(); i++) {
+            if (fTags.get(i) instanceof PlaceObject2Tag) {
+                bred = (PlaceObject2Tag) fTags.get(i);
+            }
+        }
+
+        System.out.println((bred == null) + " Bread?");
+
+        System.out.println(bred.matrix.translateX + " b4");
+        bred.matrix.translateX = xAmount;
+        bred.matrix.translateY = yAmount;
+        System.out.println(bred.matrix.translateX + " !b4");
+        bred.setModified(true);
+        OutputStream os = new OutputStream(){
+
+            @Override
+            public void write(int b) throws IOException {
+                // TODO Auto-generated method stub
+                
+            }
+            
+        };
+        SWFOutputStream sos = new SWFOutputStream(os, 0);
+        bred.writeTagWithMatrix(sos, bred.matrix);
     }
 
     //Returns SWF at location.
@@ -353,7 +416,6 @@ class EMethods {
         }
     }
 
-    //Only works for SVG currently. Fix that later.
     public static void ReplaceShape(ShapeTag tagToReplace, String replacementPath, String swfPath) throws IOException {
         SvgImporter importer = new SvgImporter();
 
@@ -392,7 +454,7 @@ class EMethods {
     }
 
     //Takes in NAME ONLY.
-    //Should add support for Export Name (Which includes TagID)
+    //Should add support for Export Name
     public static ShapeTag ShapeTagFromName(SWF swf, String tagName) {
         if (swf != null) {
             for (Tag t: swf.getTags()) {
@@ -403,7 +465,7 @@ class EMethods {
                         int substringPoint = tName.lastIndexOf("_") + 1;
 
                         String uName = GetPartNameFromExpName(tName, tName.substring(substringPoint), true);
-                        System.out.println(uName);
+                        //System.out.println(uName);
 
                         if (uName.equals(tagName)) {
                             CharacterTag reTag = (CharacterTag) GetNeededTagsClean(t, swf).get(0);
