@@ -53,27 +53,55 @@ import javax.imageio.stream.ImageInputStream;
 //PartName: Ending of ExpName. Can include SetName(b)
 //SkinName: Very End of ExpName. Name of the set the skin belongs to.
 class EMethods {
-    public static void main(String[] args) {
-        DefineSpriteTag tag = null;
+    public static void main(String[] args) throws FileNotFoundException {
+        SWF swf = GetSwf("Gfx_ActualShark.swf", true);
 
-        List < Tag > tagsFound = GetSpritesList("SharkGoblin", GetSwf("Gfx_ActualShark.swf", true));
-
-        for (Tag t: tagsFound) {
+        for (Tag t: swf.getTags()) {
             if (t instanceof DefineSpriteTag) {
-                tag = (DefineSpriteTag) t;
-                System.out.println("Guuchi " + t.getExportFileName());
-                break;
-            }
+                DefineSpriteTag sprot = (DefineSpriteTag) t;
+                System.out.println(sprot.getExportFileName());
+                sprot.setExportName("UNGA BUNGA");
+                ReadOnlyTagList sportTags = sprot.getTags();
+
+                for (int i = 0; i < sportTags.size(); i++) {
+                    if (sportTags.get(i) instanceof PlaceObject2Tag) {
+                        PlaceObject2Tag PO = (PlaceObject2Tag) sportTags.get(i);
+
+                        if (PO.placeFlagHasMatrix) {
+                            PO.matrix.translateX = 5000;
+                        } else {
+                            System.out.println("Bad");
+                        }
+                    }
+                }
+            } else {}
         }
 
-        System.out.println("GOONGI GOONGO " + (tag == null));
+        for (Tag t: swf.getTags()) {
+            if (t instanceof DefineSpriteTag) {
+                DefineSpriteTag sprot = (DefineSpriteTag) t;
+                ReadOnlyTagList sportTags = sprot.getTags();
 
+                for (int i = 0; i < sportTags.size(); i++) {
+                    if (sportTags.get(i) instanceof PlaceObject2Tag) {
+                        PlaceObject2Tag PO = (PlaceObject2Tag) sportTags.get(i);
+
+                        if (PO.placeFlagHasMatrix) {
+                            System.out.println(PO.matrix.translateX);
+                        } else {
+                            System.out.println("Bad");
+                        }
+                    }
+                }
+            } else {}
+        }
+
+        OutputStream os = new FileOutputStream("data/GFX_REEEEEEEEEEEEEEEEE.swf");
         try {
-            MoveObjectInSprite(tag, 0, 0, 5000, 5000);
+            swf.saveTo(os);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-            System.out.println("It didn't work...");
         }
     }
 
@@ -193,42 +221,6 @@ class EMethods {
             }
         }
         return "NAME_TOO_SHORT";
-    }
-
-    public static void MoveObjectInSprite(DefineSpriteTag tag, int frameIndex, int placeObject, int xAmount, int yAmount) throws IOException {
-        if (frameIndex >= tag.frameCount) {
-            System.out.println("Frame " + frameIndex + " is outside of Range " + tag.frameCount);
-            return;
-        }
-
-        DefineSpriteTag spriteLikeTheSoda = tag;
-        ReadOnlyTagList fTags = spriteLikeTheSoda.getTags();
-        PlaceObject2Tag bred = null;
-
-        for (int i = 0; i < fTags.size(); i++) {
-            if (fTags.get(i) instanceof PlaceObject2Tag) {
-                bred = (PlaceObject2Tag) fTags.get(i);
-            }
-        }
-
-        System.out.println((bred == null) + " Bread?");
-
-        System.out.println(bred.matrix.translateX + " b4");
-        bred.matrix.translateX = xAmount;
-        bred.matrix.translateY = yAmount;
-        System.out.println(bred.matrix.translateX + " !b4");
-        bred.setModified(true);
-        OutputStream os = new OutputStream(){
-
-            @Override
-            public void write(int b) throws IOException {
-                // TODO Auto-generated method stub
-                
-            }
-            
-        };
-        SWFOutputStream sos = new SWFOutputStream(os, 0);
-        bred.writeTagWithMatrix(sos, bred.matrix);
     }
 
     //Returns SWF at location.
