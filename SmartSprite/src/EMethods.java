@@ -60,7 +60,6 @@ class EMethods {
             if (t instanceof DefineSpriteTag) {
                 DefineSpriteTag sprot = (DefineSpriteTag) t;
                 System.out.println(sprot.getExportFileName());
-                sprot.setExportName("UNGA BUNGA");
                 ReadOnlyTagList sportTags = sprot.getTags();
 
                 for (int i = 0; i < sportTags.size(); i++) {
@@ -69,30 +68,15 @@ class EMethods {
 
                         if (PO.placeFlagHasMatrix) {
                             PO.matrix.translateX = 5000;
+
+                            sprot.replaceTag(i, PO);
                         } else {
                             System.out.println("Bad");
                         }
                     }
                 }
-            } else {}
-        }
 
-        for (Tag t: swf.getTags()) {
-            if (t instanceof DefineSpriteTag) {
-                DefineSpriteTag sprot = (DefineSpriteTag) t;
-                ReadOnlyTagList sportTags = sprot.getTags();
-
-                for (int i = 0; i < sportTags.size(); i++) {
-                    if (sportTags.get(i) instanceof PlaceObject2Tag) {
-                        PlaceObject2Tag PO = (PlaceObject2Tag) sportTags.get(i);
-
-                        if (PO.placeFlagHasMatrix) {
-                            System.out.println(PO.matrix.translateX);
-                        } else {
-                            System.out.println("Bad");
-                        }
-                    }
-                }
+                swf.replaceTag(t, sprot);
             } else {}
         }
 
@@ -103,6 +87,8 @@ class EMethods {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+
+        swf = GetSwf("GFX_REEEEEEEEEEEEEEEEE.swf", true);
     }
 
     public static void ReplacerAlpha() {
