@@ -1,24 +1,15 @@
 import com.jpexs.decompiler.flash.AbortRetryIgnoreHandler;
 import com.jpexs.decompiler.flash.ReadOnlyTagList;
 import com.jpexs.decompiler.flash.SWF;
-import com.jpexs.decompiler.flash.SWFOutputStream;
 import com.jpexs.decompiler.flash.SwfOpenException;
 import com.jpexs.decompiler.flash.tags.DefineSpriteTag;
 import com.jpexs.decompiler.flash.tags.PlaceObject2Tag;
 import com.jpexs.decompiler.flash.tags.Tag;
-import com.jpexs.decompiler.flash.tags.TagInfo;
 import com.jpexs.decompiler.flash.tags.base.CharacterIdTag;
 import com.jpexs.decompiler.flash.tags.base.CharacterTag;
-import com.jpexs.decompiler.flash.tags.base.ImageTag;
 import com.jpexs.decompiler.flash.tags.base.ShapeTag;
-import com.jpexs.decompiler.flash.timeline.Frame;
 import com.jpexs.decompiler.flash.types.MATRIX;
 import com.jpexs.helpers.Helper;
-
-import org.monte.media.jpeg.CMYKJPEGImageReader;
-import org.monte.media.jpeg.CMYKJPEGImageReaderSpi;
-
-import jdk.nashorn.internal.ir.UnaryNode;
 
 import com.jpexs.decompiler.flash.exporters.FrameExporter;
 import com.jpexs.decompiler.flash.exporters.ShapeExporter;
@@ -26,28 +17,18 @@ import com.jpexs.decompiler.flash.exporters.modes.ShapeExportMode;
 import com.jpexs.decompiler.flash.exporters.modes.SpriteExportMode;
 import com.jpexs.decompiler.flash.exporters.settings.ShapeExportSettings;
 import com.jpexs.decompiler.flash.exporters.settings.SpriteExportSettings;
-import com.jpexs.decompiler.flash.importers.ImageImporter;
-import com.jpexs.decompiler.flash.importers.ShapeImporter;
 import com.jpexs.decompiler.flash.importers.svg.SvgImporter;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
-import java.awt.image.BufferedImage;
-
-import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
 
 //Terminology
 //ExpName: Export Name. DefineSprite_0_a_b
@@ -71,8 +52,7 @@ class EMethods {
                             MATRIX mat = PO.getMatrix();
                             mat.translateX = 5000;
                             PO.setMatrix(mat);
-
-                            sprot.replaceTag(i, PO);
+                            PO.setModified(true);
                         } else {
                             System.out.println("Bad");
                         }
