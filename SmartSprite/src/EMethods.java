@@ -79,14 +79,16 @@ class EMethods {
                     }
                 }
 
-                swf.replaceTag(t, sprot);
+                sprot.setModified(true);
+                //swf.replaceTag(t, sprot);
             } else {}
         }
 
-        for (Tag t: swf.getTags()) {
+        /*for (Tag t: swf.getTags()) {
             if (t instanceof DefineSpriteTag) {
                 DefineSpriteTag sprot = (DefineSpriteTag) t;
                 ReadOnlyTagList sportTags = sprot.getTags();
+
 
                 for (int i = 0; i < sportTags.size(); i++) {
                     if (sportTags.get(i) instanceof PlaceObject2Tag) {
@@ -100,7 +102,7 @@ class EMethods {
                     }
                 }
             } else {}
-        }
+        }*/
 
         OutputStream os = new FileOutputStream("data/GFX_REEEEEEEEEEEEEEEEE.swf");
         try {
@@ -108,6 +110,7 @@ class EMethods {
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+            System.out.println("It didn't work...");
         }
 
         swf = GetSwf("GFX_REEEEEEEEEEEEEEEEE.swf", true);
