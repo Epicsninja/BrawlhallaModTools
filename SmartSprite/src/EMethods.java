@@ -52,6 +52,7 @@ public class EMethods {
             System.out.println((svgNameList[i]));
         }
 
+        //Read in the offset values from the TXT file
         FileReader f = new FileReader("data/MakoMod/offsets.txt");
 
         ArrayList < String > offsetFull = new ArrayList < > ();
@@ -84,6 +85,7 @@ public class EMethods {
         String skinName = "SharkGoblin";
         List < Tag > spriteLists = GetSpritesList(skinName, swf);
 
+        //Loop through all sprites for the skin, replace the ones we have SVGs for, and add offsets to the ones that need it.
         for (int i = 0; i < spriteLists.size(); i++) {
             String partName = GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, false).substring(2).toLowerCase();
 
@@ -100,7 +102,7 @@ public class EMethods {
                 System.out.println("Valid " + partIndex + " - " + partName);
                 if (offsetList.contains(partName)) {
                     System.out.println("Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), "POGCHAMP.swf", swf);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), "POGCHAMP.swf", swf, true);
 
                     DefineSpriteTag sport = (DefineSpriteTag) spriteLists.get(i);
                     ReadOnlyTagList sportTags = sport.getTags();
@@ -128,7 +130,7 @@ public class EMethods {
                     }
                 } else {
                     System.out.println("No Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), "POGCHAMP.swf", swf);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), "POGCHAMP.swf", swf, false);
                 }
             }
         }
@@ -419,14 +421,14 @@ public class EMethods {
     }
 
     //This does not yet work with sprites that have multiple shapes.
-    public static void ReplaceSprite(String toReplace, String replacement, String swfOutput, SWF swf) throws IOException {
+    public static void ReplaceSprite(String toReplace, String replacement, String swfOutput, SWF swf, Boolean updateBounds) throws IOException {
         SvgImporter importer = new SvgImporter();
 
         String svgText = Helper.readTextFile(replacement);
         ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
 
         try {
-            importer.importSvg(tagToReplace, svgText);
+            importer.importSvg(tagToReplace, svgText, updateBounds);
 
             OutputStream outputStream = new FileOutputStream("data/" + swfOutput);
 
