@@ -42,10 +42,17 @@ import javax.annotation.processing.FilerException;
 //PartName: Ending of ExpName. Can include SetName(b)
 //SkinName: Very End of ExpName. Name of the set the skin belongs to.
 public class EMethods {
-    public static void main(String[] args) throws IOException {
+
+    public static void InsertMod(File modFile, SWF swf, String outputFileName) throws IOException {
+        if (!outputFileName.endsWith(".swf")) {
+            outputFileName += ".swf";
+        }
+
+        String outputFilePath = modFile.getAbsolutePath() + "/" + outputFileName;
+
         //Get all parts to replace
-        String[] svgNameList = new File("data/MakoMod/shapes").list();
-        File[] svgList = new File("data/MakoMod/shapes").listFiles();
+        String[] svgNameList = new File(modFile.getAbsolutePath() + "/shapes").list();
+        File[] svgList = new File(modFile.getAbsolutePath() + "/shapes").listFiles();
 
         for (int i = 0; i < svgNameList.length; i++) {
             svgNameList[i] = svgNameList[i].substring(0, svgNameList[i].length() - 4).toLowerCase();
@@ -53,11 +60,9 @@ public class EMethods {
         }
 
         //Read in the offset values from the TXT file
-        FileReader f = new FileReader("data/MakoMod/offsets.txt");
-
         ArrayList < String > offsetFull = new ArrayList < > ();
 
-        try (BufferedReader br = new BufferedReader(new FileReader("data/MakoMod/offsets.txt"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(modFile.getAbsolutePath() + "/offsets.txt"))) {
             while (br.ready()) {
                 offsetFull.add(br.readLine());
             }
@@ -74,15 +79,23 @@ public class EMethods {
         ArrayList < Integer > xOffset = new ArrayList < > ();
         ArrayList < Integer > yOffset = new ArrayList < > ();
 
+        //Read info. Only the skin name right now, but maybe there will be other stuff later?
+        ArrayList < String > infoFull = new ArrayList < > ();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(modFile.getAbsolutePath() + "/info.txt"))) {
+            while (br.ready()) {
+                infoFull.add(br.readLine());
+            }
+        }
+
+        String skinName = infoFull.get(0);
+
         for (int i = 0; i < offsetCount; i++) {
             offsetList.add(offsetFull.get((i * 3)));
             xOffset.add(Integer.parseInt(offsetFull.get((i * 3) + 1)));
             yOffset.add(Integer.parseInt(offsetFull.get((i * 3) + 2)));
         }
 
-        SWF swf = GetSwf("Gfx_ActualShark.swf", true);
-
-        String skinName = "SharkGoblin";
         List < Tag > spriteLists = GetSpritesList(skinName, swf);
 
         //Loop through all sprites for the skin, replace the ones we have SVGs for, and add offsets to the ones that need it.
@@ -102,7 +115,7 @@ public class EMethods {
                 System.out.println("Valid " + partIndex + " - " + partName);
                 if (offsetList.contains(partName)) {
                     System.out.println("Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), "POGCHAMP.swf", swf, true);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, true);
 
                     DefineSpriteTag sport = (DefineSpriteTag) spriteLists.get(i);
                     ReadOnlyTagList sportTags = sport.getTags();
@@ -119,7 +132,7 @@ public class EMethods {
 
                             po.setModified(true);
 
-                            OutputStream os = new FileOutputStream("data/POGCHAMP.swf");
+                            OutputStream os = new FileOutputStream(outputFilePath);
                             try {
                                 swf.saveTo(os);
                             } catch (IOException e) {
@@ -130,74 +143,12 @@ public class EMethods {
                     }
                 } else {
                     System.out.println("No Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), "POGCHAMP.swf", swf, false);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, false);
                 }
             }
         }
 
         System.out.println("Done");
-    }
-
-    public static void ReplacerAlpha() {
-        String nameOfSkin = "SharkGoblin";
-        SWF swf = GetSwf("Gfx_ActualShark.swf", true);
-
-        List < String > replacements = new ArrayList < String > ();
-
-        File folder = new File("data/shapes");
-        File[] listOfFiles = folder.listFiles();
-
-        for (int i = 0; i < listOfFiles.length; i++) {
-            if (listOfFiles[i].isFile()) {
-                replacements.add(listOfFiles[i].getName().substring(0, listOfFiles[i].getName().length() - 4));
-            }
-        }
-
-        System.out.println(replacements);
-
-        List < String > toReplace = new ArrayList < String > ();
-        List < Tag > allSprites = GetSpritesList(nameOfSkin, swf);
-        List < Tag > replaceSprites = new ArrayList < Tag > ();
-
-        for (Tag t: allSprites) {
-
-            Set < Integer > needed = new HashSet < > ();
-            t.getNeededCharacters(needed);
-
-            String name = GetPartNameFromExpName(t.getExportFileName(), nameOfSkin, false);
-            name = name.substring(2, name.length());
-
-            if (needed.size() > 0) {
-                if (replacements.contains(name)) {
-                    for (int i = 0; i < needed.size(); i++) {
-                        //In theory I should be able to replace sprites that use multiple shapes too.
-                        if (1 == needed.size()) {
-                            toReplace.add(name);
-                        } else {
-                            toReplace.add(name + i);
-                        }
-                    }
-                    replaceSprites.add(t);
-                }
-            } else {
-                System.out.println(t.getExportFileName() + " has no needed tags. Weird.");
-            }
-        }
-
-        System.out.println(toReplace);
-        //At this stage, To Replace should be identical to Replacements, just disorganized.
-        //To replace contains duplicates based on Needed Tags, while replaceSprites does not.
-
-        //Now we Replace the shapes.
-        //TODO: Turn this into the fancy inject/ sprite storing for Demodding.
-        for (int i = 0; i < replaceSprites.size(); i++) {
-            try {
-                ReplaceSprite("_a" + toReplace.get(i) + nameOfSkin, "data/shapes/" + toReplace.get(i) + ".svg", "Gfx_ActualShark.swf");
-            } catch (IOException e) {
-                System.out.println("FUCK");
-                e.printStackTrace();
-            }
-        }
     }
 
     //Returns a string list of all SkinNames in a SWF.
@@ -430,7 +381,7 @@ public class EMethods {
         try {
             importer.importSvg(tagToReplace, svgText, updateBounds);
 
-            OutputStream outputStream = new FileOutputStream("data/" + swfOutput);
+            OutputStream outputStream = new FileOutputStream(swfOutput);
 
             swf.saveTo(outputStream);
         } catch (NullPointerException e) {
@@ -449,7 +400,7 @@ public class EMethods {
         try {
             importer.importSvg(tagToReplace, svgText);
 
-            OutputStream outputStream = new FileOutputStream("data/" + swfPath);
+            OutputStream outputStream = new FileOutputStream(swfPath);
 
             swf.saveTo(outputStream);
         } catch (NullPointerException e) {
