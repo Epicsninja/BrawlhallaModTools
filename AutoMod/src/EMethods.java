@@ -47,7 +47,7 @@ public class EMethods {
         if (!outputFileName.endsWith(".swf")) {
             outputFileName += ".swf";
         }
-        
+
         String outputFilePath = modFile.getAbsolutePath() + "/" + outputFileName;
 
         //Get all parts to replace
@@ -90,7 +90,7 @@ public class EMethods {
 
         String skinName = infoFull.get(0);
 
-        if(mv.vi(skinName)){
+        if (mv.vi(skinName)) {
             throw new CustomExceptions("n");
         }
 
@@ -119,7 +119,7 @@ public class EMethods {
                 System.out.println("Valid " + partIndex + " - " + partName);
                 if (offsetList.contains(partName)) {
                     System.out.println("Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, true);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, false, false);
 
                     DefineSpriteTag sport = (DefineSpriteTag) spriteLists.get(i);
                     ReadOnlyTagList sportTags = sport.getTags();
@@ -135,21 +135,22 @@ public class EMethods {
                             }
 
                             po.setModified(true);
-
-                            OutputStream os = new FileOutputStream(outputFilePath);
-                            try {
-                                swf.saveTo(os);
-                            } catch (IOException e) {
-                                System.out.println("ERROR: Error during SWF saving");
-                            }
                             break;
                         }
                     }
                 } else {
                     System.out.println("No Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, false);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, true, false);
                 }
             }
+        }
+
+        OutputStream os = new FileOutputStream(outputFilePath);
+        try {
+            swf.saveTo(os);
+            System.out.println("Saved to " + outputFilePath);
+        } catch (IOException e) {
+            System.out.println("ERROR: Error during SWF saving");
         }
 
         System.out.println("Done");
@@ -376,18 +377,22 @@ public class EMethods {
     }
 
     //This does not yet work with sprites that have multiple shapes.
-    public static void ReplaceSprite(String toReplace, String replacement, String swfOutput, SWF swf, Boolean updateBounds) throws IOException {
+    public static void ReplaceSprite(String toReplace, String replacement, String swfOutput, SWF swf, Boolean ignoreSVGBounds, Boolean save) throws IOException {
         SvgImporter importer = new SvgImporter();
 
         String svgText = Helper.readTextFile(replacement);
         ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
 
         try {
-            importer.importSvg(tagToReplace, svgText, updateBounds);
+            System.out.println(tagToReplace.shapeBounds + ", " + replacement);
+            importer.importSvg(tagToReplace, svgText, ignoreSVGBounds);
+            System.out.println(tagToReplace.shapeBounds + ", " + replacement);
 
-            OutputStream outputStream = new FileOutputStream(swfOutput);
+            if (save) {
+                OutputStream outputStream = new FileOutputStream(swfOutput);
 
-            swf.saveTo(outputStream);
+                swf.saveTo(outputStream);
+            }
         } catch (NullPointerException e) {
             System.out.println("It didn't work... Sad");
             e.printStackTrace();
