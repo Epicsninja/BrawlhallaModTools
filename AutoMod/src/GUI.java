@@ -29,11 +29,20 @@ public class GUI {
         //Path label. For debug purposes only
         JTextArea selectedSwfPath = new JTextArea();
         selectedSwfPath.setEditable(false);
-        selectedSwfPath.setText("No Path");
+        selectedSwfPath.setText("No Swf Path");
 
         JScrollPane pathScrollPane = new JScrollPane();
         pathScrollPane.setViewportView(selectedSwfPath);
-        pathScrollPane.setBounds(5, 220, 400, 36);
+        pathScrollPane.setBounds(5, 180, 400, 36);
+
+        //Path label. For debug purposes only
+        JTextArea selectedModPath = new JTextArea();
+        selectedModPath.setEditable(false);
+        selectedModPath.setText("No Mod Path");
+
+        JScrollPane modPathScrollPane = new JScrollPane();
+        modPathScrollPane.setViewportView(selectedModPath);
+        modPathScrollPane.setBounds(5, 220, 400, 36);
 
         //SWF name label
         JTextArea selectedSwfName = new JTextArea();
@@ -102,6 +111,7 @@ public class GUI {
 
                 if (returnVal == JFileChooser.APPROVE_OPTION) {
                     modSourceFile = fc2.getSelectedFile();
+                    selectedModPath.setText(fc2.getSelectedFile().getAbsolutePath());
                     System.out.println("Yee " + fc2.getSelectedFile().getName());
                 } else {
                     System.out.println("Naw");
@@ -125,6 +135,8 @@ public class GUI {
                         // TODO Auto-generated catch block
                         e1.printStackTrace();
                         infoBox("MOD INSERT FAILED: Invalid Mod", "ERROR");
+                    } catch(BadFormatException e1){
+                        infoBox("MOD INSERT FAILED: Bad Mod Format " + e1.getMessage(), "ERROR");
                     }
                 } else {
                     infoBox("MOD INSERT FAILED: source exists: " + (modSourceFile != null) + ", swf exists: " + (selectedSWF != null), "ERROR");
@@ -135,6 +147,7 @@ public class GUI {
 
         frame.add(selectedSwfName);
         frame.add(pathScrollPane);
+        frame.add(modPathScrollPane);
         frame.add(swfLabel);
         frame.add(outputSWFName);
         frame.add(selectSwfButton);

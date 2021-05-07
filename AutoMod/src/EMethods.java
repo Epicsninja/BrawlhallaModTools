@@ -3,8 +3,6 @@ import com.jpexs.decompiler.flash.ReadOnlyTagList;
 import com.jpexs.decompiler.flash.SWF;
 import com.jpexs.decompiler.flash.SwfOpenException;
 import com.jpexs.decompiler.flash.tags.DefineSpriteTag;
-import com.jpexs.decompiler.flash.tags.PlaceObject2Tag;
-import com.jpexs.decompiler.flash.tags.PlaceObjectTag;
 import com.jpexs.decompiler.flash.tags.Tag;
 import com.jpexs.decompiler.flash.tags.base.CharacterIdTag;
 import com.jpexs.decompiler.flash.tags.base.CharacterTag;
@@ -24,7 +22,6 @@ import com.jpexs.decompiler.flash.importers.svg.SvgImporter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -33,9 +30,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
-
-import javax.annotation.processing.FilerException;
 
 //Terminology
 //ExpName: Export Name. DefineSprite_0_a_b
@@ -43,16 +37,26 @@ import javax.annotation.processing.FilerException;
 //SkinName: Very End of ExpName. Name of the set the skin belongs to.
 public class EMethods {
 
-    public static void InsertMod(File modFile, SWF swf, String outputFileName) throws IOException, CustomExceptions {
+    public static void InsertMod(File modFile, SWF swf, String outputFileName) throws IOException, CustomExceptions, BadFormatException {
         if (!outputFileName.endsWith(".swf")) {
             outputFileName += ".swf";
         }
 
         String outputFilePath = modFile.getAbsolutePath() + "/" + outputFileName;
 
+        File shapeFile = new File(modFile.getAbsolutePath() + "/shapes");
+        File offsetFile = new File(modFile.getAbsolutePath() + "/offsets.txt");
+        File infoFile = new File(modFile.getAbsolutePath() + "/info.txt");
+
+        System.out.println("Shape Folder exists: " + (!shapeFile.exists()) + " offset.txt exists: " + (!offsetFile.exists()) + " info.txt exists: " + (!infoFile.exists()));
+        if(!shapeFile.exists() || !offsetFile.exists()|| !infoFile.exists()){
+            System.out.println("Throw Error please.");
+            throw new BadFormatException("Shape Folder exists: " + (shapeFile.exists()) + " offset.txt exists: " + (offsetFile.exists()) + " info.txt exists: " + (infoFile.exists()));
+        }
+
         //Get all parts to replace
-        String[] svgNameList = new File(modFile.getAbsolutePath() + "/shapes").list();
-        File[] svgList = new File(modFile.getAbsolutePath() + "/shapes").listFiles();
+        String[] svgNameList = shapeFile.list();
+        File[] svgList = shapeFile.listFiles();
 
         for (int i = 0; i < svgNameList.length; i++) {
             svgNameList[i] = svgNameList[i].substring(0, svgNameList[i].length() - 4).toLowerCase();
@@ -62,7 +66,7 @@ public class EMethods {
         //Read in the offset values from the TXT file
         ArrayList < String > offsetFull = new ArrayList < > ();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(modFile.getAbsolutePath() + "/offsets.txt"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(offsetFile))) {
             while (br.ready()) {
                 offsetFull.add(br.readLine());
             }
@@ -82,7 +86,7 @@ public class EMethods {
         //Read info. Only the skin name right now, but maybe there will be other stuff later?
         ArrayList < String > infoFull = new ArrayList < > ();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(modFile.getAbsolutePath() + "/info.txt"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(infoFile))) {
             while (br.ready()) {
                 infoFull.add(br.readLine());
             }
@@ -95,7 +99,7 @@ public class EMethods {
         }
 
         for (int i = 0; i < offsetCount; i++) {
-            offsetList.add(offsetFull.get((i * 3)));
+            offsetList.add(offsetFull.get((i * 3)).toLowerCase());
             xOffset.add(Integer.parseInt(offsetFull.get((i * 3) + 1)));
             yOffset.add(Integer.parseInt(offsetFull.get((i * 3) + 2)));
         }
