@@ -9,6 +9,7 @@ import com.jpexs.decompiler.flash.exporters.modes.SpriteExportMode;
 
 import java.awt.event.*;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class Gui {
@@ -190,7 +191,7 @@ public class Gui {
         exportScale.addItem("200%");
         exportScale.addItem("400%");
         exportScale.setSelectedItem(exportScale.getItemAt(1));
-        exportScale.setBounds(210, 105, 200, 24);
+        exportScale.setBounds(210, 95, 200, 24);
         exportScale.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -231,10 +232,27 @@ public class Gui {
             }
         });
 
+        //Button to export AutoMod for whatever the skins name is.
+        JButton exportAutoMod = new JButton("Export AutoMod format");
+        exportAutoMod.setBounds(210, 125, 275, 24);
+
+        exportAutoMod.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (selectedSWF != null && selectedSkinName.getText().length() > 1) {
+                    try {
+                        EMethods.ExportAutomodFormat(selectedSkinName.getText(), selectedSWF);
+                    } catch (IOException e1) {
+                        // TODO Auto-generated catch block
+                        e1.printStackTrace();
+                    }
+                }
+            }
+        });
+
         //Things to consider adding: Option to pick export directory, option to make exports compatible with modloader vs aimed at normal modding.
         //demo renderer of selected skin?
         JLabel teaser = new JLabel("I might add more features later. I might not.");
-        teaser.setBounds(210, 145, 275, 24);
+        teaser.setBounds(210, 165, 275, 24);
 
 
         frame.add(selectSwfButton);
@@ -251,6 +269,7 @@ public class Gui {
         frame.add(spriteFormat);
         frame.add(shapeFormat);
         frame.add(formatsLabel);
+        frame.add(exportAutoMod);
         frame.setSize(800, 600);
         frame.setLayout(null);
         frame.setVisible(true);

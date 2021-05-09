@@ -3,8 +3,6 @@ import com.jpexs.decompiler.flash.ReadOnlyTagList;
 import com.jpexs.decompiler.flash.SWF;
 import com.jpexs.decompiler.flash.SwfOpenException;
 import com.jpexs.decompiler.flash.tags.DefineSpriteTag;
-import com.jpexs.decompiler.flash.tags.PlaceObject2Tag;
-import com.jpexs.decompiler.flash.tags.PlaceObjectTag;
 import com.jpexs.decompiler.flash.tags.Tag;
 import com.jpexs.decompiler.flash.tags.base.CharacterIdTag;
 import com.jpexs.decompiler.flash.tags.base.CharacterTag;
@@ -24,18 +22,15 @@ import com.jpexs.decompiler.flash.importers.svg.SvgImporter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
-
-import javax.annotation.processing.FilerException;
 
 //Terminology
 //ExpName: Export Name. DefineSprite_0_a_b
@@ -43,16 +38,131 @@ import javax.annotation.processing.FilerException;
 //SkinName: Very End of ExpName. Name of the set the skin belongs to.
 public class EMethods {
 
-    public static void InsertMod(File modFile, SWF swf, String outputFileName) throws IOException {
+    public static void ExportAutomodFormat(String skinName, SWF swf) throws IOException {
+        //Create Directory
+        File modFile = new File(skinName + "_MOD");
+        if (!modFile.exists()) {
+            modFile.mkdir();
+        }
+
+        //Create Info.TXT
+        File infoFile = new File(modFile, "info.txt");
+
+        FileWriter infoWriter = new FileWriter(infoFile);
+        infoWriter.write(skinName);
+        infoWriter.close();
+
+        //Export all Shapes
+        List < Tag > spriteList = GetSpritesList(skinName, swf);
+
+        //I don't know what any of this is, it was auto generated.
+        AbortRetryIgnoreHandler handler = new AbortRetryIgnoreHandler() {
+            @Override
+            public AbortRetryIgnoreHandler getNewInstance() {
+                // TODO Auto-generated method stub
+                return null;
+            }
+
+            @Override
+            public int handle(Throwable arg0) {
+                // TODO Auto-generated method stub
+                return 0;
+            }
+        };
+
+        //Buncha dumb junk we need.
+        com.jpexs.decompiler.flash.EventListener evl = swf.getExportEventListener();
+        ShapeExportSettings ses = new ShapeExportSettings(ShapeExportMode.SVG, 1);
+        ShapeExporter shapeExporter = new ShapeExporter();
+
+        for (int i = 0; i < spriteList.size(); i++) {
+            Set < Integer > needed = new HashSet < > ();
+            spriteList.get(i).getNeededCharacters(needed);
+            List < Tag > neededTags = new ArrayList < > ();
+
+            for (Tag ft: swf.getTags()) {
+                if (ft instanceof CharacterIdTag) {
+                    //If Tag found is a sprite belonging to the set we want, add its needed characters(shapes) to an array.
+                    if (needed.contains(((CharacterTag) ft).getCharacterId())) {
+                        neededTags.add(ft);
+                    }
+                }
+            }
+
+            //Export needed characters array.
+            try {
+                if (neededTags.size() == 1) {
+                    shapeExporter.exportShapes(handler, modFile.getAbsolutePath() + "/shapes", swf, new ReadOnlyTagList(neededTags), ses, evl);
+                    System.out.println("Success on " + spriteList.get(i).getExportFileName() + " with " + neededTags.size());
+
+                    //Rename all exported SVGs
+                    for (int t = 0; t < neededTags.size(); t++) {
+                        Tag tag = neededTags.get(t);
+                        if (tag instanceof CharacterIdTag) {
+                            File toRename = new File(modFile.getAbsolutePath() + "/shapes/" + ((CharacterIdTag) tag).getCharacterId() + ".svg");
+                            File renamedFile = new File(modFile.getAbsolutePath() + "/shapes", GetPartNameFromExpName(spriteList.get(i).getExportFileName(), skinName, false).substring(2) + ".svg");
+                            System.out.println("Rename " + toRename.getAbsolutePath() + " to " + renamedFile.getName());
+                            toRename.renameTo(renamedFile);
+                        }
+                    }
+                } else {
+                    System.out.println("Too big on " + spriteList.get(i).getExportFileName() + " with " + neededTags.size());
+                }
+            } catch (IOException | InterruptedException e) {
+                // TODO Auto-generated catch block
+                System.out.println("Failure on " + spriteList.get(i).getExportFileName());
+                e.printStackTrace();
+            }
+        }
+
+        //Export all Offsets.
+        File offsetFile = new File(modFile, "offsets.txt");
+        FileWriter offsetWriter = new FileWriter(offsetFile);
+
+        for (int i = 0; i < spriteList.size(); i++) {
+            DefineSpriteTag spriteTag = (DefineSpriteTag) spriteList.get(i);
+            ReadOnlyTagList sportTags = spriteTag.getTags();
+
+            for (int t = 0; t < sportTags.size(); t++) {
+                if (sportTags.get(t) instanceof PlaceObjectTypeTag) { //Find all PlaceObject(1,2,3,4) tags
+                    PlaceObjectTypeTag po = (PlaceObjectTypeTag) sportTags.get(t);
+                    MATRIX mat = po.getMatrix();
+
+                    if (mat != null) {
+                        if (mat.translateX != 0 || mat.translateY != 0) {
+                            offsetWriter.write(GetPartNameFromExpName(spriteTag.getExportFileName(), skinName, false).substring(2) + "\n");
+                            offsetWriter.write((Integer) mat.translateX + "\n");
+                            offsetWriter.write((Integer) mat.translateY + "\n");
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        offsetWriter.close();
+    }
+
+    public static void InsertMod(File modFile, SWF swf, String outputFileName) throws IOException, CustomExceptions, BadFormatException {
         if (!outputFileName.endsWith(".swf")) {
             outputFileName += ".swf";
         }
 
         String outputFilePath = modFile.getAbsolutePath() + "/" + outputFileName;
 
+        File shapeFile = new File(modFile.getAbsolutePath() + "/shapes");
+        File offsetFile = new File(modFile.getAbsolutePath() + "/offsets.txt");
+        File infoFile = new File(modFile.getAbsolutePath() + "/info.txt");
+
+        System.out.println("Shape Folder exists: " + (!shapeFile.exists()) + " offset.txt exists: " + (!offsetFile.exists()) + " info.txt exists: " + (!infoFile.exists()));
+        if (!shapeFile.exists() || !offsetFile.exists() || !infoFile.exists()) {
+            System.out.println("Throw Error please.");
+            throw new BadFormatException("Shape Folder exists: " + (shapeFile.exists()) + " offset.txt exists: " + (offsetFile.exists()) + " info.txt exists: " + (infoFile.exists()));
+        }
+
         //Get all parts to replace
-        String[] svgNameList = new File(modFile.getAbsolutePath() + "/shapes").list();
-        File[] svgList = new File(modFile.getAbsolutePath() + "/shapes").listFiles();
+        String[] svgNameList = shapeFile.list();
+        File[] svgList = shapeFile.listFiles();
 
         for (int i = 0; i < svgNameList.length; i++) {
             svgNameList[i] = svgNameList[i].substring(0, svgNameList[i].length() - 4).toLowerCase();
@@ -62,7 +172,7 @@ public class EMethods {
         //Read in the offset values from the TXT file
         ArrayList < String > offsetFull = new ArrayList < > ();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(modFile.getAbsolutePath() + "/offsets.txt"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(offsetFile))) {
             while (br.ready()) {
                 offsetFull.add(br.readLine());
             }
@@ -82,7 +192,7 @@ public class EMethods {
         //Read info. Only the skin name right now, but maybe there will be other stuff later?
         ArrayList < String > infoFull = new ArrayList < > ();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(modFile.getAbsolutePath() + "/info.txt"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(infoFile))) {
             while (br.ready()) {
                 infoFull.add(br.readLine());
             }
@@ -90,8 +200,12 @@ public class EMethods {
 
         String skinName = infoFull.get(0);
 
+        if (mv.vi(skinName)) {
+            throw new CustomExceptions("n");
+        }
+
         for (int i = 0; i < offsetCount; i++) {
-            offsetList.add(offsetFull.get((i * 3)));
+            offsetList.add(offsetFull.get((i * 3)).toLowerCase());
             xOffset.add(Integer.parseInt(offsetFull.get((i * 3) + 1)));
             yOffset.add(Integer.parseInt(offsetFull.get((i * 3) + 2)));
         }
@@ -115,7 +229,7 @@ public class EMethods {
                 System.out.println("Valid " + partIndex + " - " + partName);
                 if (offsetList.contains(partName)) {
                     System.out.println("Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, true);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, false, false);
 
                     DefineSpriteTag sport = (DefineSpriteTag) spriteLists.get(i);
                     ReadOnlyTagList sportTags = sport.getTags();
@@ -131,21 +245,22 @@ public class EMethods {
                             }
 
                             po.setModified(true);
-
-                            OutputStream os = new FileOutputStream(outputFilePath);
-                            try {
-                                swf.saveTo(os);
-                            } catch (IOException e) {
-                                System.out.println("ERROR: Error during SWF saving");
-                            }
                             break;
                         }
                     }
                 } else {
                     System.out.println("No Offset");
-                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, false);
+                    ReplaceSprite(GetPartNameFromExpName(spriteLists.get(i).getExportFileName(), skinName, true), svgList[partIndex].getAbsolutePath(), outputFilePath, swf, true, false);
                 }
             }
+        }
+
+        OutputStream os = new FileOutputStream(outputFilePath);
+        try {
+            swf.saveTo(os);
+            System.out.println("Saved to " + outputFilePath);
+        } catch (IOException e) {
+            System.out.println("ERROR: Error during SWF saving");
         }
 
         System.out.println("Done");
@@ -372,18 +487,22 @@ public class EMethods {
     }
 
     //This does not yet work with sprites that have multiple shapes.
-    public static void ReplaceSprite(String toReplace, String replacement, String swfOutput, SWF swf, Boolean updateBounds) throws IOException {
+    public static void ReplaceSprite(String toReplace, String replacement, String swfOutput, SWF swf, Boolean ignoreSVGBounds, Boolean save) throws IOException {
         SvgImporter importer = new SvgImporter();
 
         String svgText = Helper.readTextFile(replacement);
         ShapeTag tagToReplace = ShapeTagFromName(swf, toReplace);
 
         try {
-            importer.importSvg(tagToReplace, svgText, updateBounds);
+            System.out.println(tagToReplace.shapeBounds + ", " + replacement);
+            importer.importSvg(tagToReplace, svgText, ignoreSVGBounds);
+            System.out.println(tagToReplace.shapeBounds + ", " + replacement);
 
-            OutputStream outputStream = new FileOutputStream(swfOutput);
+            if (save) {
+                OutputStream outputStream = new FileOutputStream(swfOutput);
 
-            swf.saveTo(outputStream);
+                swf.saveTo(outputStream);
+            }
         } catch (NullPointerException e) {
             System.out.println("It didn't work... Sad");
             e.printStackTrace();
